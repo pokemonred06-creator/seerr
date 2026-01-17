@@ -115,9 +115,11 @@ class BaseScanner<T> {
         let changedExisting = false;
 
         if (existing[is4k ? 'status4k' : 'status'] !== MediaStatus.AVAILABLE) {
-          existing[is4k ? 'status4k' : 'status'] = processing
-            ? MediaStatus.PROCESSING
-            : MediaStatus.AVAILABLE;
+          existing[is4k ? 'status4k' : 'status'] = !processing
+            ? MediaStatus.AVAILABLE
+            : existing[is4k ? 'status4k' : 'status'] === MediaStatus.DELETED
+            ? MediaStatus.DELETED
+            : MediaStatus.PROCESSING;
           if (mediaAddedAt) {
             existing.mediaAddedAt = mediaAddedAt;
           }
