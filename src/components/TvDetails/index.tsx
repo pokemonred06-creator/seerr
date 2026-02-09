@@ -1176,22 +1176,40 @@ const TvDetails = ({ tv }: TvDetailsProps) => {
                       </a>
                     </Tooltip>
                   )}
-                {settings.currentSettings.ratingOverlays?.includes('douban') &&
-                  ratingData?.douban?.rating && (
-                    <Tooltip content={intl.formatMessage(messages.doubanscore)}>
-                      <a
-                        href={`https://movie.douban.com/subject/${ratingData.douban.id}/`}
-                        className="media-rating"
-                        target="_blank"
-                        rel="noreferrer"
+                {(() => {
+                  const rating = ratingData?.douban?.rating;
+                  if (
+                    rating &&
+                    settings.currentSettings.ratingOverlays?.includes('douban')
+                  ) {
+                    return (
+                      <Tooltip
+                        content={intl.formatMessage(messages.doubanscore)}
                       >
-                        <span className="mr-1 flex h-6 w-6 items-center justify-center rounded-full bg-[#00B51D] text-[10px] font-bold text-white">
-                          豆
-                        </span>
-                        <span>{ratingData.douban.rating.toFixed(1)}</span>
-                      </a>
-                    </Tooltip>
-                  )}
+                        <a
+                          href={`https://movie.douban.com/subject/${ratingData.douban?.id}/`}
+                          className="media-rating"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <span
+                            className={`mr-1 flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold text-white ${
+                              rating >= 8
+                                ? 'bg-green-600'
+                                : rating >= 7
+                                ? 'bg-yellow-600'
+                                : 'bg-red-600'
+                            }`}
+                          >
+                            豆
+                          </span>
+                          <span>{rating.toFixed(1)}</span>
+                        </a>
+                      </Tooltip>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
             )}
             {data.originalName &&
