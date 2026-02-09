@@ -54,8 +54,10 @@ const StatusChecker = () => {
       appear
       show={
         !alertDismissed &&
-        ((hasPermission(Permission.ADMIN) && data.restartRequired) ||
-          data.commitTag !== process.env.commitTag)
+        hasPermission(Permission.ADMIN) &&
+        (data.restartRequired ||
+          (data.commitTag !== process.env.commitTag &&
+            process.env.NODE_ENV !== 'production')) // Only show in dev mode or if restart required
       }
     >
       {hasPermission(Permission.ADMIN) && data.restartRequired ? (
@@ -64,9 +66,6 @@ const StatusChecker = () => {
           backgroundClickable={false}
           onOk={() => {
             setAlertDismissed(true);
-            if (data.commitTag !== process.env.commitTag) {
-              location.reload();
-            }
           }}
           okText={intl.formatMessage(globalMessages.close)}
         >

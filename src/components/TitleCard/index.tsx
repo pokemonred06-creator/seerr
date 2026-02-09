@@ -1,4 +1,8 @@
+import RTFresh from '@app/assets/rt_fresh.svg';
+import RTRotten from '@app/assets/rt_rotten.svg';
+import ImdbLogo from '@app/assets/services/imdb.svg';
 import Spinner from '@app/assets/spinner.svg';
+import TmdbLogo from '@app/assets/tmdb_logo.svg';
 import BlacklistModal from '@app/components/BlacklistModal';
 import Button from '@app/components/Common/Button';
 import CachedImage from '@app/components/Common/CachedImage';
@@ -8,6 +12,7 @@ import RequestModal from '@app/components/RequestModal';
 import ErrorCard from '@app/components/TitleCard/ErrorCard';
 import Placeholder from '@app/components/TitleCard/Placeholder';
 import { useIsTouch } from '@app/hooks/useIsTouch';
+import useSettings from '@app/hooks/useSettings';
 import { Permission, UserType, useUser } from '@app/hooks/useUser';
 import globalMessages from '@app/i18n/globalMessages';
 import defineMessages from '@app/utils/defineMessages';
@@ -20,6 +25,7 @@ import {
   MinusCircleIcon,
   StarIcon,
 } from '@heroicons/react/24/outline';
+import { type RatingResponse } from '@server/api/ratings';
 import { MediaStatus } from '@server/constants/media';
 import type { Watchlist } from '@server/entity/Watchlist';
 import type { MediaType } from '@server/models/Search';
@@ -28,7 +34,7 @@ import Link from 'next/link';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { useToasts } from 'react-toast-notifications';
-import { mutate } from 'swr';
+import useSWR, { mutate } from 'swr';
 
 interface TitleCardProps {
   id: number;
@@ -43,6 +49,7 @@ interface TitleCardProps {
   inProgress?: boolean;
   isAddedToWatchlist?: number | boolean;
   mutateParent?: () => void;
+  doubanRating?: number;
 }
 
 const messages = defineMessages('components.TitleCard', {
@@ -67,6 +74,8 @@ const TitleCard = ({
   inProgress = false,
   canExpand = false,
   mutateParent,
+  doubanRating,
+  userScore,
 }: TitleCardProps) => {
   const isTouch = useIsTouch();
   const intl = useIntl();
@@ -76,6 +85,16 @@ const TitleCard = ({
   const [showDetail, setShowDetail] = useState(false);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const { addToast } = useToasts();
+  const settings = useSettings();
+  const { data: ratingData } = useSWR<RatingResponse>(
+    (mediaType === 'movie' || mediaType === 'tv') &&
+      settings.currentSettings.ratingOverlays?.some((r) =>
+        ['imdb', 'rt', 'douban'].includes(r)
+      )
+      ? `/api/v1/${mediaType}/${id}/ratingscombined`
+      : null
+  );
+
   const [toggleWatchlist, setToggleWatchlist] = useState<boolean>(
     !isAddedToWatchlist
   );
@@ -273,6 +292,8 @@ const TitleCard = ({
     <div
       className={canExpand ? 'w-full' : 'w-36 sm:w-36 md:w-44'}
       data-testid="title-card"
+      data-tmdb-id={id}
+      data-media-type={mediaType}
       ref={cardRef}
     >
       <RequestModal
@@ -356,6 +377,69 @@ const TitleCard = ({
                   : intl.formatMessage(globalMessages.tvshow)}
               </div>
             </div>
+            {settings.currentSettings.ratingOverlays?.includes('tmdb') &&
+              userScore && (
+                <div className="pointer-events-none z-40 self-start rounded-full border border-blue-500 bg-blue-600 bg-opacity-80 shadow-md">
+                  <div className="flex h-4 items-center pl-1 pr-2 text-center text-xs font-medium text-white sm:h-5">
+                    <TmdbLogo className="mr-1 w-3" />
+                    {Math.round(userScore * 10)}%
+                  </div>
+                </div>
+              )}
+            {settings.currentSettings.ratingOverlays?.includes('rt') &&
+              ratingData?.rt?.criticsScore && (
+                <div
+                  className={`pointer-events-none z-40 self-start rounded-full border bg-opacity-80 shadow-md ${
+                    ratingData.rt.criticsRating === 'Rotten'
+                      ? 'border-red-600 bg-red-600'
+                      : 'border-green-600 bg-green-600'
+                  }`}
+                >
+                  <div className="flex h-4 items-center pl-1 pr-2 text-center text-xs font-medium text-white sm:h-5">
+                    {ratingData.rt.criticsRating === 'Rotten' ? (
+                      <RTRotten className="mr-1 w-3" />
+                    ) : (
+                      <RTFresh className="mr-1 w-3" />
+                    )}
+                    {ratingData.rt.criticsScore}%
+                  </div>
+                </div>
+              )}
+            {settings.currentSettings.ratingOverlays?.includes('imdb') &&
+              ratingData?.imdb?.criticsScore && (
+                <div className="pointer-events-none z-40 self-start rounded-full border border-yellow-500 bg-yellow-600 bg-opacity-80 shadow-md">
+                  <div className="flex h-4 items-center pl-1 pr-2 text-center text-xs font-medium text-white sm:h-5">
+                    <ImdbLogo className="mr-1 w-3" />
+                    {ratingData.imdb.criticsScore.toFixed(1)}
+                  </div>
+                </div>
+              )}
+            {(() => {
+              const effectiveDoubanRating =
+                doubanRating ?? ratingData?.douban?.rating;
+              if (
+                effectiveDoubanRating &&
+                settings.currentSettings.ratingOverlays?.includes('douban')
+              ) {
+                return (
+                  <div
+                    className={`pointer-events-none z-40 self-start rounded-full border shadow-md ${
+                      effectiveDoubanRating >= 8
+                        ? 'border-green-500 bg-green-600'
+                        : effectiveDoubanRating >= 7
+                        ? 'border-yellow-500 bg-yellow-600'
+                        : 'border-red-500 bg-red-600'
+                    } bg-opacity-80`}
+                  >
+                    <div className="flex h-4 items-center px-2 py-2 text-center text-xs font-medium text-white sm:h-5">
+                      <span className="mr-1">豆</span>
+                      {effectiveDoubanRating.toFixed(1)}
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()}
             {showDetail && currentStatus !== MediaStatus.BLACKLISTED && (
               <div className="flex flex-col gap-1">
                 {user?.userType !== UserType.PLEX &&

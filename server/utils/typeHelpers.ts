@@ -18,6 +18,12 @@ export const isMovie = (
   return (movie as TmdbMovieResult).title !== undefined;
 };
 
+export const isTvShow = (
+  tv: TmdbMovieResult | TmdbTvResult | TmdbPersonResult | TmdbCollectionResult
+): tv is TmdbTvResult => {
+  return (tv as TmdbTvResult).name !== undefined;
+};
+
 export const isPerson = (
   person:
     | TmdbMovieResult

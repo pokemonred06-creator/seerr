@@ -96,6 +96,7 @@ const ListView = ({
                       (title.mediaInfo?.downloadStatus ?? []).length > 0
                     }
                     canExpand
+                    doubanRating={(title as MovieResult).doubanRating}
                   />
                 );
                 break;
@@ -118,6 +119,7 @@ const ListView = ({
                       (title.mediaInfo?.downloadStatus ?? []).length > 0
                     }
                     canExpand
+                    doubanRating={(title as TvResult).doubanRating}
                   />
                 );
                 break;

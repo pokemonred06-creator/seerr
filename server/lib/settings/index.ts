@@ -136,6 +136,7 @@ export interface MainSettings {
   enableSpecialEpisodes: boolean;
   locale: string;
   youtubeUrl: string;
+  ratingOverlays: string[];
 }
 
 export interface NetworkSettings {
@@ -175,6 +176,7 @@ interface FullPublicSettings extends PublicSettings {
   userEmailRequired: boolean;
   newPlexLogin: boolean;
   youtubeUrl: string;
+  ratingOverlays: string[];
 }
 
 export interface NotificationAgentConfig {
@@ -371,6 +373,7 @@ class Settings {
         enableSpecialEpisodes: false,
         locale: 'en',
         youtubeUrl: '',
+        ratingOverlays: ['tmdb', 'douban'],
       },
       plex: {
         name: '',
@@ -637,6 +640,7 @@ class Settings {
         this.data.notifications.agents.email.options.userEmailRequired,
       newPlexLogin: this.data.main.newPlexLogin,
       youtubeUrl: this.data.main.youtubeUrl,
+      ratingOverlays: this.data.main.ratingOverlays,
     };
   }
 

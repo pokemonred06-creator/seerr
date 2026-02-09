@@ -31,6 +31,7 @@ const defaultSettings = {
   emailEnabled: false,
   newPlexLogin: true,
   youtubeUrl: '',
+  ratingOverlays: [] as string[],
 };
 
 export const SettingsContext = React.createContext<SettingsContextProps>({

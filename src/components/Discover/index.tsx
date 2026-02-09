@@ -396,6 +396,26 @@ const Discover = () => {
               />
             );
             break;
+          case DiscoverSliderType.DOUBAN_MOVIES:
+            sliderComponent = (
+              <MediaSlider
+                sliderKey="douban-movies"
+                title={intl.formatMessage(sliderTitles.doubanmovies)}
+                url="/api/v1/discover/douban/movies"
+                linkUrl="/discover/douban/movies"
+              />
+            );
+            break;
+          case DiscoverSliderType.DOUBAN_TV:
+            sliderComponent = (
+              <MediaSlider
+                sliderKey="douban-tv"
+                title={intl.formatMessage(sliderTitles.doubantv)}
+                url="/api/v1/discover/douban/tv"
+                linkUrl="/discover/douban/tv"
+              />
+            );
+            break;
         }
 
         if (isEditing) {

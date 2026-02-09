@@ -1,4 +1,7 @@
+import DoubanAPI from '@server/api/douban';
+import IMDBRadarrProxy from '@server/api/rating/imdbRadarrProxy';
 import RottenTomatoes from '@server/api/rating/rottentomatoes';
+import { type RatingResponse } from '@server/api/ratings';
 import TheMovieDb from '@server/api/themoviedb';
 import { MediaType } from '@server/constants/media';
 import { getRepository } from '@server/datasource';
@@ -92,18 +95,33 @@ tvRoutes.get('/:id/recommendations', async (req, res, next) => {
       results.results.map((result) => result.id)
     );
 
+    const ratings = await Promise.all(
+      results.results.map(async (result) => {
+        try {
+          return await new DoubanAPI().getRating(result.id, 'tv');
+        } catch (e) {
+          return undefined;
+        }
+      })
+    );
+
     return res.status(200).json({
       page: results.page,
       totalPages: results.total_pages,
       totalResults: results.total_results,
-      results: results.results.map((result) =>
-        mapTvResult(
+      results: results.results.map((result, index) => {
+        const douban = ratings[index];
+        if (douban) {
+          result.doubanRating = douban.rating;
+          result.doubanId = douban.id;
+        }
+        return mapTvResult(
           result,
           media.find(
             (req) => req.tmdbId === result.id && req.mediaType === MediaType.TV
           )
-        )
-      ),
+        );
+      }),
     });
   } catch (e) {
     logger.debug('Something went wrong retrieving series recommendations', {
@@ -133,18 +151,33 @@ tvRoutes.get('/:id/similar', async (req, res, next) => {
       results.results.map((result) => result.id)
     );
 
+    const ratings = await Promise.all(
+      results.results.map(async (result) => {
+        try {
+          return await new DoubanAPI().getRating(result.id, 'tv');
+        } catch (e) {
+          return undefined;
+        }
+      })
+    );
+
     return res.status(200).json({
       page: results.page,
       totalPages: results.total_pages,
       totalResults: results.total_results,
-      results: results.results.map((result) =>
-        mapTvResult(
+      results: results.results.map((result, index) => {
+        const douban = ratings[index];
+        if (douban) {
+          result.doubanRating = douban.rating;
+          result.doubanId = douban.id;
+        }
+        return mapTvResult(
           result,
           media.find(
             (req) => req.tmdbId === result.id && req.mediaType === MediaType.TV
           )
-        )
-      ),
+        );
+      }),
     });
   } catch (e) {
     logger.debug('Something went wrong retrieving similar series', {
@@ -181,6 +214,63 @@ tvRoutes.get('/:id/ratings', async (req, res, next) => {
     }
 
     return res.status(200).json(rtratings);
+  } catch (e) {
+    logger.debug('Something went wrong retrieving series ratings', {
+      label: 'API',
+      errorMessage: e.message,
+      tvId: req.params.id,
+    });
+    return next({
+      status: 500,
+      message: 'Unable to retrieve series ratings.',
+    });
+  }
+});
+
+tvRoutes.get('/:id/ratingscombined', async (req, res, next) => {
+  const tmdb = new TheMovieDb();
+  const rtapi = new RottenTomatoes();
+  const imdbApi = new IMDBRadarrProxy();
+
+  try {
+    const tv = await tmdb.getTvShow({
+      tvId: Number(req.params.id),
+    });
+
+    const rtratings = await rtapi.getTVRatings(
+      tv.name,
+      tv.first_air_date ? Number(tv.first_air_date.slice(0, 4)) : undefined
+    );
+
+    let imdbRatings;
+    if (tv.external_ids.imdb_id) {
+      imdbRatings = await imdbApi.getMovieRatings(tv.external_ids.imdb_id);
+    }
+
+    let doubanRating;
+    try {
+      doubanRating = await new DoubanAPI().getRating(
+        Number(req.params.id),
+        'tv'
+      );
+    } catch (e) {
+      // Ignore
+    }
+
+    if (!rtratings && !imdbRatings && !doubanRating) {
+      return next({
+        status: 404,
+        message: 'No ratings found.',
+      });
+    }
+
+    const ratings: RatingResponse = {
+      ...(rtratings ? { rt: rtratings } : {}),
+      ...(imdbRatings ? { imdb: imdbRatings } : {}),
+      ...(doubanRating ? { douban: doubanRating } : {}),
+    };
+
+    return res.status(200).json(ratings);
   } catch (e) {
     logger.debug('Something went wrong retrieving series ratings', {
       label: 'API',

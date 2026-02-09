@@ -69,7 +69,10 @@ const messages = defineMessages('components.Settings.SettingsMain', {
   youtubeUrlTip:
     'Base URL for YouTube videos if a self-hosted YouTube instance is used.',
   validationUrl: 'You must provide a valid URL',
+
   validationUrlTrailingSlash: 'URL must not end in a trailing slash',
+  ratingOverlays: 'Rating Overlays',
+  ratingOverlaysTip: 'Select which ratings to display on media posters',
 });
 
 const SettingsMain = () => {
@@ -174,7 +177,9 @@ const SettingsMain = () => {
             partialRequestsEnabled: data?.partialRequestsEnabled,
             enableSpecialEpisodes: data?.enableSpecialEpisodes,
             cacheImages: data?.cacheImages,
+
             youtubeUrl: data?.youtubeUrl,
+            ratingOverlays: data?.ratingOverlays,
           }}
           enableReinitialize
           validationSchema={MainSettingsSchema}
@@ -194,7 +199,9 @@ const SettingsMain = () => {
                 partialRequestsEnabled: values.partialRequestsEnabled,
                 enableSpecialEpisodes: values.enableSpecialEpisodes,
                 cacheImages: values.cacheImages,
+
                 youtubeUrl: values.youtubeUrl,
+                ratingOverlays: values.ratingOverlays,
               });
               mutate('/api/v1/settings/public');
               mutate('/api/v1/status');
@@ -556,6 +563,70 @@ const SettingsMain = () => {
                       typeof errors.youtubeUrl === 'string' && (
                         <div className="error">{errors.youtubeUrl}</div>
                       )}
+                  </div>
+                </div>
+                <div
+                  role="group"
+                  aria-labelledby="checkbox-group"
+                  className="form-row"
+                >
+                  <label htmlFor="ratingOverlays" className="text-label">
+                    <span>{intl.formatMessage(messages.ratingOverlays)}</span>
+                    <span className="label-tip">
+                      {intl.formatMessage(messages.ratingOverlaysTip)}
+                    </span>
+                  </label>
+                  <div className="form-input-area">
+                    <div className="flex flex-col gap-2">
+                      <label
+                        className="checkbox-label"
+                        htmlFor="ratingOverlays-tmdb"
+                      >
+                        <Field
+                          type="checkbox"
+                          id="ratingOverlays-tmdb"
+                          name="ratingOverlays"
+                          value="tmdb"
+                        />
+                        <span className="ml-2">TMDB</span>
+                      </label>
+                      <label
+                        className="checkbox-label"
+                        htmlFor="ratingOverlays-imdb"
+                      >
+                        <Field
+                          type="checkbox"
+                          id="ratingOverlays-imdb"
+                          name="ratingOverlays"
+                          value="imdb"
+                        />
+                        <span className="ml-2">IMDb</span>
+                      </label>
+                      <label
+                        className="checkbox-label"
+                        htmlFor="ratingOverlays-rt"
+                      >
+                        <Field
+                          type="checkbox"
+                          id="ratingOverlays-rt"
+                          name="ratingOverlays"
+                          value="rt"
+                        />
+                        <span className="ml-2">Rotten Tomatoes</span>
+                      </label>
+                      <label
+                        className="checkbox-label"
+                        htmlFor="ratingOverlays-douban"
+                      >
+                        <Field
+                          type="checkbox"
+                          id="ratingOverlays-douban"
+                          name="ratingOverlays"
+                          value="douban"
+                        />
+                        <span className="ml-2">Douban</span>
+                      </label>
+                    </div>
                   </div>
                 </div>
                 <div className="actions">

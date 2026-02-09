@@ -5655,6 +5655,126 @@ paths:
                         - $ref: '#/components/schemas/MovieResult'
                         - $ref: '#/components/schemas/TvResult'
                         - $ref: '#/components/schemas/PersonResult'
+  /discover/douban/movies:
+    get:
+      summary: Get Douban trending movies
+      description: Returns a list of trending movies from Douban.
+      tags:
+        - search
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: number
+            example: 1
+            default: 1
+        - in: query
+          name: category
+          description: Filter by Douban category
+          schema:
+            type: string
+            example: 'movie_showing'
+        - in: query
+          name: genre
+          description: Filter by genre
+          schema:
+            type: string
+        - in: query
+          name: region
+          description: Filter by region
+          schema:
+            type: string
+        - in: query
+          name: year
+          description: Filter by year
+          schema:
+            type: string
+        - in: query
+          name: sort
+          description: Sort order
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of movies
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  page:
+                    type: number
+                    example: 1
+                  totalPages:
+                    type: number
+                    example: 20
+                  totalResults:
+                    type: number
+                    example: 200
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MovieResult'
+  /discover/douban/tv:
+    get:
+      summary: Get Douban trending TV shows
+      description: Returns a list of trending TV shows from Douban.
+      tags:
+        - search
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: number
+            example: 1
+            default: 1
+        - in: query
+          name: category
+          description: Filter by Douban category
+          schema:
+            type: string
+            example: 'tv_domestic'
+        - in: query
+          name: genre
+          description: Filter by genre
+          schema:
+            type: string
+        - in: query
+          name: region
+          description: Filter by region
+          schema:
+            type: string
+        - in: query
+          name: year
+          description: Filter by year
+          schema:
+            type: string
+        - in: query
+          name: sort
+          description: Sort order
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of TV shows
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  page:
+                    type: number
+                    example: 1
+                  totalPages:
+                    type: number
+                    example: 20
+                  totalResults:
+                    type: number
+                    example: 200
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/TvResult'
   /discover/keyword/{keywordId}/movies:
     get:
       summary: Get movies from keyword

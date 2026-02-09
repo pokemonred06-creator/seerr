@@ -1,3 +1,4 @@
+import DoubanAPI from '@server/api/douban';
 import IMDBRadarrProxy from '@server/api/rating/imdbRadarrProxy';
 import RottenTomatoes from '@server/api/rating/rottentomatoes';
 import { type RatingResponse } from '@server/api/ratings';
@@ -70,19 +71,34 @@ movieRoutes.get('/:id/recommendations', async (req, res, next) => {
       results.results.map((result) => result.id)
     );
 
+    const ratings = await Promise.all(
+      results.results.map(async (result) => {
+        try {
+          return await new DoubanAPI().getRating(result.id, 'movie');
+        } catch (e) {
+          return undefined;
+        }
+      })
+    );
+
     return res.status(200).json({
       page: results.page,
       totalPages: results.total_pages,
       totalResults: results.total_results,
-      results: results.results.map((result) =>
-        mapMovieResult(
+      results: results.results.map((result, index) => {
+        const douban = ratings[index];
+        if (douban) {
+          result.doubanRating = douban.rating;
+          result.doubanId = douban.id;
+        }
+        return mapMovieResult(
           result,
           media.find(
             (req) =>
               req.tmdbId === result.id && req.mediaType === MediaType.MOVIE
           )
-        )
-      ),
+        );
+      }),
     });
   } catch (e) {
     logger.debug('Something went wrong retrieving movie recommendations', {
@@ -112,19 +128,34 @@ movieRoutes.get('/:id/similar', async (req, res, next) => {
       results.results.map((result) => result.id)
     );
 
+    const ratings = await Promise.all(
+      results.results.map(async (result) => {
+        try {
+          return await new DoubanAPI().getRating(result.id, 'movie');
+        } catch (e) {
+          return undefined;
+        }
+      })
+    );
+
     return res.status(200).json({
       page: results.page,
       totalPages: results.total_pages,
       totalResults: results.total_results,
-      results: results.results.map((result) =>
-        mapMovieResult(
+      results: results.results.map((result, index) => {
+        const douban = ratings[index];
+        if (douban) {
+          result.doubanRating = douban.rating;
+          result.doubanId = douban.id;
+        }
+        return mapMovieResult(
           result,
           media.find(
             (req) =>
               req.tmdbId === result.id && req.mediaType === MediaType.MOVIE
           )
-        )
-      ),
+        );
+      }),
     });
   } catch (e) {
     logger.debug('Something went wrong retrieving similar movies', {
@@ -200,7 +231,17 @@ movieRoutes.get('/:id/ratingscombined', async (req, res, next) => {
       imdbRatings = await imdbApi.getMovieRatings(movie.imdb_id);
     }
 
-    if (!rtratings && !imdbRatings) {
+    let doubanRating;
+    try {
+      doubanRating = await new DoubanAPI().getRating(
+        Number(req.params.id),
+        'movie'
+      );
+    } catch (e) {
+      // Ignore
+    }
+
+    if (!rtratings && !imdbRatings && !doubanRating) {
       return next({
         status: 404,
         message: 'No ratings found.',
@@ -210,6 +251,7 @@ movieRoutes.get('/:id/ratingscombined', async (req, res, next) => {
     const ratings: RatingResponse = {
       ...(rtratings ? { rt: rtratings } : {}),
       ...(imdbRatings ? { imdb: imdbRatings } : {}),
+      ...(doubanRating ? { douban: doubanRating } : {}),
     };
 
     return res.status(200).json(ratings);

@@ -100,6 +100,7 @@ const messages = defineMessages('components.MovieDetails', {
   rtaudiencescore: 'Rotten Tomatoes Audience Score',
   tmdbuserscore: 'TMDB User Score',
   imdbuserscore: 'IMDB User Score',
+  doubanscore: 'Douban Score',
   watchlistSuccess: '<strong>{title}</strong> added to watchlist successfully!',
   watchlistDeleted:
     '<strong>{title}</strong> Removed from watchlist successfully!',
@@ -771,7 +772,8 @@ const MovieDetails = ({ movie }: MovieDetailsProps) => {
                 !!ratingData?.rt?.audienceScore) ||
               ratingData?.imdb?.criticsScore) && (
               <div className="media-ratings">
-                {ratingData?.rt?.criticsRating &&
+                {settings.currentSettings.ratingOverlays?.includes('rt') &&
+                  ratingData?.rt?.criticsRating &&
                   typeof ratingData?.rt?.criticsScore === 'number' && (
                     <Tooltip
                       content={intl.formatMessage(messages.rtcriticsscore)}
@@ -791,7 +793,8 @@ const MovieDetails = ({ movie }: MovieDetailsProps) => {
                       </a>
                     </Tooltip>
                   )}
-                {ratingData?.rt?.audienceRating &&
+                {settings.currentSettings.ratingOverlays?.includes('rt') &&
+                  ratingData?.rt?.audienceRating &&
                   !!ratingData?.rt?.audienceScore && (
                     <Tooltip
                       content={intl.formatMessage(messages.rtaudiencescore)}
@@ -811,32 +814,54 @@ const MovieDetails = ({ movie }: MovieDetailsProps) => {
                       </a>
                     </Tooltip>
                   )}
-                {ratingData?.imdb?.criticsScore && (
-                  <Tooltip content={intl.formatMessage(messages.imdbuserscore)}>
-                    <a
-                      href={ratingData.imdb.url}
-                      className="media-rating"
-                      target="_blank"
-                      rel="noreferrer"
+                {settings.currentSettings.ratingOverlays?.includes('imdb') &&
+                  ratingData?.imdb?.criticsScore && (
+                    <Tooltip
+                      content={intl.formatMessage(messages.imdbuserscore)}
                     >
-                      <ImdbLogo className="mr-1 w-6" />
-                      <span>{ratingData.imdb.criticsScore}</span>
-                    </a>
-                  </Tooltip>
-                )}
-                {!!data.voteCount && (
-                  <Tooltip content={intl.formatMessage(messages.tmdbuserscore)}>
-                    <a
-                      href={`https://www.themoviedb.org/movie/${data.id}?language=${locale}`}
-                      className="media-rating"
-                      target="_blank"
-                      rel="noreferrer"
+                      <a
+                        href={`https://www.imdb.com/title/${ratingData.imdb.title}/`}
+                        className="media-rating"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <ImdbLogo className="w-6" />
+                        <span>{ratingData.imdb.criticsScore.toFixed(1)}</span>
+                      </a>
+                    </Tooltip>
+                  )}
+                {settings.currentSettings.ratingOverlays?.includes('tmdb') &&
+                  !!data.voteCount && (
+                    <Tooltip
+                      content={intl.formatMessage(messages.tmdbuserscore)}
                     >
-                      <TmdbLogo className="mr-1 w-6" />
-                      <span>{Math.round(data.voteAverage * 10)}%</span>
-                    </a>
-                  </Tooltip>
-                )}
+                      <a
+                        href={`https://www.themoviedb.org/movie/${data.id}?language=${locale}`}
+                        className="media-rating"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <TmdbLogo className="w-6" />
+                        <span>{Math.round(data.voteAverage * 10)}%</span>
+                      </a>
+                    </Tooltip>
+                  )}
+                {settings.currentSettings.ratingOverlays?.includes('douban') &&
+                  ratingData?.douban?.rating && (
+                    <Tooltip content={intl.formatMessage(messages.doubanscore)}>
+                      <a
+                        href={`https://movie.douban.com/subject/${ratingData.douban.id}/`}
+                        className="media-rating"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#00B51D] text-[10px] font-bold text-white">
+                          豆
+                        </span>
+                        <span>{ratingData.douban.rating.toFixed(1)}</span>
+                      </a>
+                    </Tooltip>
+                  )}
               </div>
             )}
             {data.originalTitle &&

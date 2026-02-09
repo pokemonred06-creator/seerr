@@ -24,6 +24,8 @@ interface SearchResult {
   overview: string;
   originalLanguage: string;
   mediaInfo?: Media;
+  doubanRating?: number;
+  doubanId?: string;
 }
 
 export interface MovieResult extends SearchResult {
@@ -88,6 +90,8 @@ export const mapMovieResult = (
   backdropPath: movieResult.backdrop_path,
   posterPath: movieResult.poster_path,
   mediaInfo: media,
+  doubanRating: movieResult.doubanRating,
+  doubanId: movieResult.doubanId,
 });
 
 export const mapTvResult = (
@@ -110,6 +114,8 @@ export const mapTvResult = (
   backdropPath: tvResult.backdrop_path,
   posterPath: tvResult.poster_path,
   mediaInfo: media,
+  doubanRating: tvResult.doubanRating,
+  doubanId: tvResult.doubanId,
 });
 
 export const mapCollectionResult = (

@@ -133,6 +133,7 @@ const MediaSlider = ({
               year={title.releaseDate}
               mediaType={title.mediaType}
               inProgress={(title.mediaInfo?.downloadStatus ?? []).length > 0}
+              doubanRating={title.doubanRating}
             />
           );
         case 'tv':
@@ -149,6 +150,7 @@ const MediaSlider = ({
               year={title.firstAirDate}
               mediaType={title.mediaType}
               inProgress={(title.mediaInfo?.downloadStatus ?? []).length > 0}
+              doubanRating={title.doubanRating}
             />
           );
         case 'person':

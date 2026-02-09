@@ -9,6 +9,8 @@ interface TmdbMediaResult {
   genre_ids: number[];
   overview: string;
   original_language: string;
+  doubanRating?: number;
+  doubanId?: string;
 }
 
 export interface TmdbMovieResult extends TmdbMediaResult {

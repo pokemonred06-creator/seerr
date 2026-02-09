@@ -62,7 +62,7 @@ router.get<unknown, StatusResponse>('/status', async (req, res) => {
         (commit) => !commit.commit.message.includes('[skip ci]')
       );
       if (filteredCommits[0].sha !== commitTag) {
-        updateAvailable = true;
+        updateAvailable = false; // Disabled update check for custom build
       }
 
       const commitIndex = filteredCommits.findIndex(

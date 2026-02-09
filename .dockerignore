@@ -1,3 +1,5 @@
+*.tar
+*.sh
 **/*.md
 **/.gitkeep
 **/.vscode

@@ -1,7 +1,12 @@
+import DoubanAPI from '@server/api/douban';
 import PlexTvAPI from '@server/api/plextv';
 import type { SortOptions } from '@server/api/themoviedb';
 import TheMovieDb from '@server/api/themoviedb';
-import type { TmdbKeyword } from '@server/api/themoviedb/interfaces';
+import type {
+  TmdbKeyword,
+  TmdbMovieResult,
+  TmdbTvResult,
+} from '@server/api/themoviedb/interfaces';
 import { MediaType } from '@server/constants/media';
 import { getRepository } from '@server/datasource';
 import Media from '@server/entity/Media';
@@ -21,7 +26,12 @@ import {
   mapTvResult,
 } from '@server/models/Search';
 import { mapNetwork } from '@server/models/Tv';
-import { isCollection, isMovie, isPerson } from '@server/utils/typeHelpers';
+import {
+  isCollection,
+  isMovie,
+  isPerson,
+  isTvShow,
+} from '@server/utils/typeHelpers';
 import { Router } from 'express';
 import { sortBy } from 'lodash';
 import { z } from 'zod';
@@ -139,20 +149,35 @@ discoverRoutes.get('/movies', async (req, res, next) => {
       );
     }
 
+    const ratings = await Promise.all(
+      data.results.map(async (result) => {
+        try {
+          return await new DoubanAPI().getRating(result.id, 'movie');
+        } catch (e) {
+          return undefined;
+        }
+      })
+    );
+
     return res.status(200).json({
       page: data.page,
       totalPages: data.total_pages,
       totalResults: data.total_results,
       keywords: keywordData,
-      results: data.results.map((result) =>
-        mapMovieResult(
+      results: data.results.map((result, index) => {
+        const douban = ratings[index];
+        if (douban && isMovie(result)) {
+          result.doubanRating = douban.rating;
+          result.doubanId = douban.id;
+        }
+        return mapMovieResult(
           result,
           media.find(
             (req) =>
               req.tmdbId === result.id && req.mediaType === MediaType.MOVIE
           )
-        )
-      ),
+        );
+      }),
     });
   } catch (e) {
     logger.debug('Something went wrong retrieving popular movies', {
@@ -430,19 +455,34 @@ discoverRoutes.get('/tv', async (req, res, next) => {
       );
     }
 
+    const ratings = await Promise.all(
+      data.results.map(async (result) => {
+        try {
+          return await new DoubanAPI().getRating(result.id, 'tv');
+        } catch (e) {
+          return undefined;
+        }
+      })
+    );
+
     return res.status(200).json({
       page: data.page,
       totalPages: data.total_pages,
       totalResults: data.total_results,
       keywords: keywordData,
-      results: data.results.map((result) =>
-        mapTvResult(
+      results: data.results.map((result, index) => {
+        const douban = ratings[index];
+        if (douban && isTvShow(result)) {
+          result.doubanRating = douban.rating;
+          result.doubanId = douban.id;
+        }
+        return mapTvResult(
           result,
           media.find(
             (med) => med.tmdbId === result.id && med.mediaType === MediaType.TV
           )
-        )
-      ),
+        );
+      }),
     });
   } catch (e) {
     logger.debug('Something went wrong retrieving popular series', {
@@ -678,12 +718,31 @@ discoverRoutes.get('/trending', async (req, res, next) => {
       data.results.map((result) => result.id)
     );
 
+    const ratings = await Promise.all(
+      data.results.map(async (result) => {
+        try {
+          return await new DoubanAPI().getRating(
+            result.id,
+            isMovie(result) ? 'movie' : 'tv'
+          );
+        } catch (e) {
+          return undefined;
+        }
+      })
+    );
+
     return res.status(200).json({
       page: data.page,
       totalPages: data.total_pages,
       totalResults: data.total_results,
-      results: data.results.map((result) =>
-        isMovie(result)
+      results: data.results.map((result, index) => {
+        const douban = ratings[index];
+        if (douban && (isMovie(result) || isTvShow(result))) {
+          (result as TmdbMovieResult | TmdbTvResult).doubanRating =
+            douban.rating;
+          (result as TmdbMovieResult | TmdbTvResult).doubanId = douban.id;
+        }
+        return isMovie(result)
           ? mapMovieResult(
               result,
               media.find(
@@ -701,8 +760,8 @@ discoverRoutes.get('/trending', async (req, res, next) => {
                 (med) =>
                   med.tmdbId === result.id && med.mediaType === MediaType.TV
               )
-            )
-      ),
+            );
+      }),
     });
   } catch (e) {
     logger.debug('Something went wrong retrieving trending items', {
@@ -712,6 +771,107 @@ discoverRoutes.get('/trending', async (req, res, next) => {
     return next({
       status: 500,
       message: 'Unable to retrieve trending items.',
+    });
+  }
+});
+
+discoverRoutes.get('/douban/movies', async (req, res, next) => {
+  const douban = new DoubanAPI();
+  const page = Number(req.query.page) || 1;
+  const category = req.query.category as string | undefined;
+  const genre = req.query.genre as string | undefined;
+  const region = req.query.region as string | undefined;
+  const year = req.query.year as string | undefined;
+  const sort = req.query.sort as string | undefined;
+
+  try {
+    const data = await douban.getMovieTrending({
+      page,
+      category,
+      genre,
+      region,
+      year,
+      sort,
+    });
+
+    const media = await Media.getRelatedMedia(
+      req.user,
+      data.results.map((result) => result.id)
+    );
+
+    return res.status(200).json({
+      page: data.page,
+      totalPages: data.total_pages,
+      totalResults: data.total_results,
+      results: data.results.map((result) =>
+        mapMovieResult(
+          result,
+          media.find(
+            (med) =>
+              med.tmdbId === result.id && med.mediaType === MediaType.MOVIE
+          )
+        )
+      ),
+    });
+  } catch (e) {
+    logger.error('Something went wrong retrieving Douban movies', {
+      label: 'API',
+      errorMessage: e.message,
+      stack: e.stack,
+    });
+    return next({
+      status: 500,
+      message: 'Unable to retrieve Douban movies.',
+    });
+  }
+});
+
+discoverRoutes.get('/douban/tv', async (req, res, next) => {
+  const douban = new DoubanAPI();
+  const page = Number(req.query.page) || 1;
+  const category = req.query.category as string | undefined;
+  const genre = req.query.genre as string | undefined;
+  const region = req.query.region as string | undefined;
+  const year = req.query.year as string | undefined;
+  const sort = req.query.sort as string | undefined;
+
+  try {
+    const data = await douban.getTvTrending({
+      page,
+      category,
+      genre,
+      region,
+      year,
+      sort,
+    });
+
+    const media = await Media.getRelatedMedia(
+      req.user,
+      data.results.map((result) => result.id)
+    );
+
+    return res.status(200).json({
+      page: data.page,
+      totalPages: data.total_pages,
+      totalResults: data.total_results,
+      results: data.results.map((result) =>
+        mapTvResult(
+          result,
+          media.find(
+            (med) => med.tmdbId === result.id && med.mediaType === MediaType.TV
+          )
+        )
+      ),
+    });
+  } catch (e) {
+    logger.error('Something went wrong retrieving Douban TV', {
+      label: 'API',
+      errorMessage: e.message,
+      stack: e.stack,
+    });
+    return next({
+      status: 500,
+      message: 'Unable to retrieve Douban TV.',
     });
   }
 });

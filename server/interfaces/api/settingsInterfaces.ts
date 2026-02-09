@@ -46,7 +46,9 @@ export interface PublicSettingsResponse {
   locale: string;
   emailEnabled: boolean;
   newPlexLogin: boolean;
+
   youtubeUrl: string;
+  ratingOverlays: string[];
 }
 
 export interface CacheItem {
