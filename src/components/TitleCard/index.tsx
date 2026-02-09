@@ -405,15 +405,31 @@ const TitleCard = ({
                   </div>
                 </div>
               )}
-            {settings.currentSettings.ratingOverlays?.includes('imdb') &&
-              ratingData?.imdb?.criticsScore && (
-                <div className="pointer-events-none z-40 self-start rounded-full border border-yellow-500 bg-yellow-600 bg-opacity-80 shadow-md">
-                  <div className="flex h-4 items-center pl-1 pr-2 text-center text-xs font-medium text-white sm:h-5">
-                    <ImdbLogo className="mr-1 w-3" />
-                    {ratingData.imdb.criticsScore.toFixed(1)}
+            {(() => {
+              const imdbScore = ratingData?.imdb?.criticsScore;
+              if (
+                imdbScore &&
+                settings.currentSettings.ratingOverlays?.includes('imdb')
+              ) {
+                return (
+                  <div
+                    className={`pointer-events-none z-40 self-start rounded-full border shadow-md ${
+                      imdbScore >= 7
+                        ? 'border-green-500 bg-green-600'
+                        : imdbScore >= 6
+                        ? 'border-yellow-500 bg-yellow-600'
+                        : 'border-red-500 bg-red-600'
+                    } bg-opacity-80`}
+                  >
+                    <div className="flex h-4 items-center pl-1 pr-2 text-center text-xs font-medium text-white sm:h-5">
+                      <ImdbLogo className="mr-1 w-3" />
+                      {imdbScore.toFixed(1)}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              }
+              return null;
+            })()}
             {(() => {
               const effectiveDoubanRating =
                 doubanRating ?? ratingData?.douban?.rating;
