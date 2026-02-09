@@ -98,6 +98,25 @@ const TitleCard = ({
   const [toggleWatchlist, setToggleWatchlist] = useState<boolean>(
     !isAddedToWatchlist
   );
+
+  const effectiveDoubanRating = doubanRating ?? ratingData?.douban?.rating;
+  const ratingCount = [
+    settings.currentSettings.ratingOverlays?.includes('tmdb') && userScore,
+    settings.currentSettings.ratingOverlays?.includes('rt') &&
+      ratingData?.rt?.criticsScore,
+    settings.currentSettings.ratingOverlays?.includes('imdb') &&
+      ratingData?.imdb?.criticsScore,
+    settings.currentSettings.ratingOverlays?.includes('douban') &&
+      effectiveDoubanRating,
+  ].filter(Boolean).length;
+  const isCompact = ratingCount > 2;
+
+  const badgeTextClass = isCompact
+    ? 'text-[8px] sm:text-[10px]'
+    : 'text-[10px] sm:text-xs';
+  const badgeHeightClass = isCompact ? 'h-3.5 sm:h-4' : 'h-4 sm:h-5';
+  const badgePaddingClass = isCompact ? 'px-1' : 'px-2';
+  const ratingPaddingClass = isCompact ? 'pl-0.5 pr-1' : 'pl-1 pr-2';
   const [showBlacklistModal, setShowBlacklistModal] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -361,15 +380,17 @@ const TitleCard = ({
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             fill
           />
-          <div className="absolute left-0 right-0 flex items-center justify-between p-2">
+          <div className="absolute left-0 right-0 flex items-start justify-between p-1 sm:p-2">
             <div
-              className={`pointer-events-none z-40 self-start rounded-full border bg-opacity-80 shadow-md ${
+              className={`pointer-events-none z-40 rounded-full border bg-opacity-80 shadow-md ${
                 mediaType === 'movie' || mediaType === 'collection'
                   ? 'border-blue-500 bg-blue-600'
                   : 'border-purple-600 bg-purple-600'
               }`}
             >
-              <div className="flex h-4 items-center px-2 py-2 text-center text-xs font-medium uppercase tracking-wider text-white sm:h-5">
+              <div
+                className={`flex ${badgeHeightClass} items-center ${badgePaddingClass} text-center font-medium uppercase tracking-wider text-white ${badgeTextClass}`}
+              >
                 {mediaType === 'movie'
                   ? intl.formatMessage(globalMessages.movie)
                   : mediaType === 'collection'
@@ -377,151 +398,165 @@ const TitleCard = ({
                   : intl.formatMessage(globalMessages.tvshow)}
               </div>
             </div>
-            {settings.currentSettings.ratingOverlays?.includes('tmdb') &&
-              userScore && (
-                <div className="pointer-events-none z-40 self-start rounded-full border border-blue-500 bg-blue-600 bg-opacity-80 shadow-md">
-                  <div className="flex h-4 items-center pl-1 pr-2 text-center text-xs font-medium text-white sm:h-5">
-                    <TmdbLogo className="mr-1 w-3" />
-                    {Math.round(userScore * 10)}%
+
+            <div className="z-40 flex flex-col items-end gap-1 overflow-hidden">
+              <div className="flex flex-wrap justify-end gap-1">
+                {settings.currentSettings.ratingOverlays?.includes('tmdb') &&
+                  userScore && (
+                    <div className="pointer-events-none rounded-full border border-blue-500 bg-blue-600 bg-opacity-80 shadow-md">
+                      <div
+                        className={`flex ${badgeHeightClass} items-center ${ratingPaddingClass} text-center font-medium text-white ${badgeTextClass}`}
+                      >
+                        <TmdbLogo className="mr-1 w-3" />
+                        {Math.round(userScore * 10)}%
+                      </div>
+                    </div>
+                  )}
+                {settings.currentSettings.ratingOverlays?.includes('rt') &&
+                  ratingData?.rt?.criticsScore && (
+                    <div
+                      className={`pointer-events-none rounded-full border bg-opacity-80 shadow-md ${
+                        ratingData.rt.criticsRating === 'Rotten'
+                          ? 'border-red-600 bg-red-600'
+                          : 'border-green-600 bg-green-600'
+                      }`}
+                    >
+                      <div
+                        className={`flex ${badgeHeightClass} items-center ${ratingPaddingClass} text-center font-medium text-white ${badgeTextClass}`}
+                      >
+                        {ratingData.rt.criticsRating === 'Rotten' ? (
+                          <RTRotten className="mr-1 w-3" />
+                        ) : (
+                          <RTFresh className="mr-1 w-3" />
+                        )}
+                        {ratingData.rt.criticsScore}%
+                      </div>
+                    </div>
+                  )}
+                {(() => {
+                  const imdbScore = ratingData?.imdb?.criticsScore;
+                  if (
+                    imdbScore &&
+                    settings.currentSettings.ratingOverlays?.includes('imdb')
+                  ) {
+                    return (
+                      <div
+                        className={`pointer-events-none rounded-full border shadow-md ${
+                          imdbScore >= 7
+                            ? 'border-green-500 bg-green-600'
+                            : imdbScore >= 6
+                            ? 'border-yellow-500 bg-yellow-600'
+                            : 'border-red-500 bg-red-600'
+                        } bg-opacity-80`}
+                      >
+                        <div
+                          className={`flex ${badgeHeightClass} items-center ${ratingPaddingClass} text-center font-medium text-white ${badgeTextClass}`}
+                        >
+                          <ImdbLogo className="mr-1 w-3" />
+                          {imdbScore.toFixed(1)}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+                {(() => {
+                  if (
+                    effectiveDoubanRating &&
+                    settings.currentSettings.ratingOverlays?.includes('douban')
+                  ) {
+                    return (
+                      <div
+                        className={`pointer-events-none rounded-full border shadow-md ${
+                          effectiveDoubanRating >= 8
+                            ? 'border-green-500 bg-green-600'
+                            : effectiveDoubanRating >= 7
+                            ? 'border-yellow-500 bg-yellow-600'
+                            : 'border-red-500 bg-red-600'
+                        } bg-opacity-80`}
+                      >
+                        <div
+                          className={`flex ${badgeHeightClass} items-center px-1 py-1 text-center font-medium text-white ${badgeTextClass}`}
+                        >
+                          <span className="mr-0.5">豆</span>
+                          {effectiveDoubanRating.toFixed(1)}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
+
+              <div className="flex flex-col items-end gap-1">
+                {showDetail && currentStatus !== MediaStatus.BLACKLISTED && (
+                  <div className="flex flex-col gap-1">
+                    {user?.userType !== UserType.PLEX &&
+                      (toggleWatchlist ? (
+                        <Button
+                          buttonType={'ghost'}
+                          className="z-40"
+                          buttonSize={'sm'}
+                          onClick={onClickWatchlistBtn}
+                        >
+                          <StarIcon className={'h-3 text-amber-300'} />
+                        </Button>
+                      ) : (
+                        <Button
+                          className="z-40"
+                          buttonSize={'sm'}
+                          onClick={onClickDeleteWatchlistBtn}
+                        >
+                          <MinusCircleIcon className={'h-3'} />
+                        </Button>
+                      ))}
+                    {showHideButton &&
+                      currentStatus !== MediaStatus.PROCESSING &&
+                      currentStatus !== MediaStatus.AVAILABLE &&
+                      currentStatus !== MediaStatus.PARTIALLY_AVAILABLE &&
+                      currentStatus !== MediaStatus.PENDING && (
+                        <Button
+                          buttonType={'ghost'}
+                          className="z-40"
+                          buttonSize={'sm'}
+                          onClick={() => setShowBlacklistModal(true)}
+                        >
+                          <EyeSlashIcon className={'h-3'} />
+                        </Button>
+                      )}
                   </div>
-                </div>
-              )}
-            {settings.currentSettings.ratingOverlays?.includes('rt') &&
-              ratingData?.rt?.criticsScore && (
-                <div
-                  className={`pointer-events-none z-40 self-start rounded-full border bg-opacity-80 shadow-md ${
-                    ratingData.rt.criticsRating === 'Rotten'
-                      ? 'border-red-600 bg-red-600'
-                      : 'border-green-600 bg-green-600'
-                  }`}
-                >
-                  <div className="flex h-4 items-center pl-1 pr-2 text-center text-xs font-medium text-white sm:h-5">
-                    {ratingData.rt.criticsRating === 'Rotten' ? (
-                      <RTRotten className="mr-1 w-3" />
-                    ) : (
-                      <RTFresh className="mr-1 w-3" />
-                    )}
-                    {ratingData.rt.criticsScore}%
-                  </div>
-                </div>
-              )}
-            {(() => {
-              const imdbScore = ratingData?.imdb?.criticsScore;
-              if (
-                imdbScore &&
-                settings.currentSettings.ratingOverlays?.includes('imdb')
-              ) {
-                return (
-                  <div
-                    className={`pointer-events-none z-40 self-start rounded-full border shadow-md ${
-                      imdbScore >= 7
-                        ? 'border-green-500 bg-green-600'
-                        : imdbScore >= 6
-                        ? 'border-yellow-500 bg-yellow-600'
-                        : 'border-red-500 bg-red-600'
-                    } bg-opacity-80`}
-                  >
-                    <div className="flex h-4 items-center pl-1 pr-2 text-center text-xs font-medium text-white sm:h-5">
-                      <ImdbLogo className="mr-1 w-3" />
-                      {imdbScore.toFixed(1)}
+                )}
+                {showDetail &&
+                  showHideButton &&
+                  currentStatus == MediaStatus.BLACKLISTED && (
+                    <Tooltip
+                      content={intl.formatMessage(
+                        globalMessages.removefromBlacklist
+                      )}
+                    >
+                      <Button
+                        buttonType={'ghost'}
+                        className="z-40"
+                        buttonSize={'sm'}
+                        onClick={() => onClickShowBlacklistBtn()}
+                      >
+                        <EyeIcon className={'h-3'} />
+                      </Button>
+                    </Tooltip>
+                  )}
+                {currentStatus && currentStatus !== MediaStatus.UNKNOWN && (
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="pointer-events-none flex">
+                      <StatusBadgeMini
+                        status={currentStatus}
+                        inProgress={inProgress}
+                        shrink
+                      />
                     </div>
                   </div>
-                );
-              }
-              return null;
-            })()}
-            {(() => {
-              const effectiveDoubanRating =
-                doubanRating ?? ratingData?.douban?.rating;
-              if (
-                effectiveDoubanRating &&
-                settings.currentSettings.ratingOverlays?.includes('douban')
-              ) {
-                return (
-                  <div
-                    className={`pointer-events-none z-40 self-start rounded-full border shadow-md ${
-                      effectiveDoubanRating >= 8
-                        ? 'border-green-500 bg-green-600'
-                        : effectiveDoubanRating >= 7
-                        ? 'border-yellow-500 bg-yellow-600'
-                        : 'border-red-500 bg-red-600'
-                    } bg-opacity-80`}
-                  >
-                    <div className="flex h-4 items-center px-2 py-2 text-center text-xs font-medium text-white sm:h-5">
-                      <span className="mr-1">豆</span>
-                      {effectiveDoubanRating.toFixed(1)}
-                    </div>
-                  </div>
-                );
-              }
-              return null;
-            })()}
-            {showDetail && currentStatus !== MediaStatus.BLACKLISTED && (
-              <div className="flex flex-col gap-1">
-                {user?.userType !== UserType.PLEX &&
-                  (toggleWatchlist ? (
-                    <Button
-                      buttonType={'ghost'}
-                      className="z-40"
-                      buttonSize={'sm'}
-                      onClick={onClickWatchlistBtn}
-                    >
-                      <StarIcon className={'h-3 text-amber-300'} />
-                    </Button>
-                  ) : (
-                    <Button
-                      className="z-40"
-                      buttonSize={'sm'}
-                      onClick={onClickDeleteWatchlistBtn}
-                    >
-                      <MinusCircleIcon className={'h-3'} />
-                    </Button>
-                  ))}
-                {showHideButton &&
-                  currentStatus !== MediaStatus.PROCESSING &&
-                  currentStatus !== MediaStatus.AVAILABLE &&
-                  currentStatus !== MediaStatus.PARTIALLY_AVAILABLE &&
-                  currentStatus !== MediaStatus.PENDING && (
-                    <Button
-                      buttonType={'ghost'}
-                      className="z-40"
-                      buttonSize={'sm'}
-                      onClick={() => setShowBlacklistModal(true)}
-                    >
-                      <EyeSlashIcon className={'h-3'} />
-                    </Button>
-                  )}
+                )}
               </div>
-            )}
-            {showDetail &&
-              showHideButton &&
-              currentStatus == MediaStatus.BLACKLISTED && (
-                <Tooltip
-                  content={intl.formatMessage(
-                    globalMessages.removefromBlacklist
-                  )}
-                >
-                  <Button
-                    buttonType={'ghost'}
-                    className="z-40"
-                    buttonSize={'sm'}
-                    onClick={() => onClickShowBlacklistBtn()}
-                  >
-                    <EyeIcon className={'h-3'} />
-                  </Button>
-                </Tooltip>
-              )}
-            {currentStatus && currentStatus !== MediaStatus.UNKNOWN && (
-              <div className="flex flex-col items-center gap-1">
-                <div className="pointer-events-none z-40 flex">
-                  <StatusBadgeMini
-                    status={currentStatus}
-                    inProgress={inProgress}
-                    shrink
-                  />
-                </div>
-              </div>
-            )}
+            </div>
           </div>
           <Transition
             as={Fragment}
