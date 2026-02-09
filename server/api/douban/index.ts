@@ -307,8 +307,8 @@ class DoubanAPI extends ExternalAPI {
 
       return {
         page,
-        total_results: 1000,
-        total_pages: 50,
+        total_results: 2000,
+        total_pages: 100,
         results,
       };
     } catch (e) {
